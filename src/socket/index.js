@@ -1,9 +1,10 @@
 const { user, profile, chat } = require("../../models");
+
 const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
 
 const connectedUser = {};
-// // connection server and client socket.io
+
 const socketIo = (io) => {
   io.use((socket, next) => {
     if (socket.handshake.auth && socket.handshake.auth.token) {
@@ -13,19 +14,97 @@ const socketIo = (io) => {
     }
   });
 
-  // CHAT
-  io.on("connection", async (socket) => {
+  io.on("connection", (socket) => {
+    console.log("client connect:", socket.id);
+
     const userId = socket.handshake.query.id;
 
     connectedUser[userId] = socket.id;
 
     // define listener on event “load admin contact”
+    socket.on("load admin contact", async () => {
+      try {
+        const adminContact = await user.findAll({
+          where: {
+            status: "admin",
+          },
+          include: [
+            {
+              model: chat,
+              as: "recipientMessage",
+              attributes: {
+                exclude: ["createdAt", "updatedAt"],
+              },
+            },
+            {
+              model: chat,
+              as: "senderMessage",
+              attributes: {
+                exclude: ["createdAt", "updatedAt"],
+              },
+            },
+          ],
+          attributes: {
+            exclude: ["createdAt", "updatedAt", "password"],
+          },
+        });
+
+        console.log(adminContact);
+
+        // emit event to send admin data on event “admin contact”
+        socket.emit("admin contact", adminContact);
+      } catch (err) {
+        console.log(err);
+      }
+    });
+
+    socket.on("load customers contact", async () => {
+      try {
+        let customersContacts = await user.findAll({
+          include: [
+            {
+              model: chat,
+              as: "recipientMessage",
+              attributes: {
+                exclude: ["createdAt", "updatedAt"],
+              },
+            },
+            {
+              model: chat,
+              as: "senderMessage",
+              attributes: {
+                exclude: ["createdAt", "updatedAt"],
+              },
+            },
+          ],
+          attributes: {
+            exclude: ["createdAt", "updatedAt", "password"],
+          },
+        });
+
+        // customersContacts di convert agar dapat menampilkan gambar
+        customersContacts = JSON.parse(JSON.stringify(customersContacts));
+
+        customersContacts = customersContacts.map((item) => {
+          return {
+            ...item,
+            // image: item.image ? process.env.PATH_FILE + item.image : null,
+          };
+        });
+
+        // emit event to send admin data on event “admin contact”
+        socket.emit("customers contact", customersContacts);
+      } catch (err) {
+        console.log(err);
+      }
+    });
+
     socket.on("load messages", async (payload) => {
       try {
         const token = socket.handshake.auth.token;
 
-        const tokenKey = process.env.SECRET_KEY;
-        const verified = jwt.verify(token, tokenKey);
+        const tokenKey = process.env.TOKEN_KEY;
+        const verified = jwt.verify(token, tokenKey); // Create Token
 
         const idRecipient = payload; // catch recipient id sent from client
         const idSender = verified.id; //id user
@@ -71,11 +150,11 @@ const socketIo = (io) => {
       try {
         const token = socket.handshake.auth.token;
 
-        const tokenKey = process.env.SECRET_KEY;
-        const verified = jwt.verify(token, tokenKey);
+        const tokenKey = process.env.TOKEN_KEY;
+        const verified = jwt.verify(token, tokenKey); // Create Token
 
-        const idSender = verified.id; // catch recipient id sent from client
-        const { message, idRecipient } = payload; //id user
+        const idSender = verified.id; // id User
+        const { message, idRecipient } = payload;
 
         await chat.create({
           message,
@@ -89,86 +168,8 @@ const socketIo = (io) => {
       }
     });
 
-    socket.on("load admin contact", async () => {
-      try {
-        const adminContact = await user.findOne({
-          where: {
-            status: "admin",
-          },
-          include: [
-            {
-              model: chat,
-              as: "recipientMessage",
-              attributes: {
-                exclude: ["createdAt", "updatedAt"],
-              },
-            },
-            {
-              model: chat,
-              as: "senderMessage",
-              attributes: {
-                exclude: ["createdAt", "updatedAt"],
-              },
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "password"],
-          },
-        });
-
-        console.log(adminContact);
-        // emit event to send admin data on event “admin contact”
-        socket.emit("admin contact", adminContact);
-      } catch (err) {
-        console.log(err);
-      }
-    });
-
-    socket.on("load customer contacts", async () => {
-      try {
-        let customerContact = await user.findAll({
-          include: [
-            {
-              model: chat,
-              as: "recipientMessage",
-              attributes: {
-                exclude: ["createdAt", "updatedAt"],
-              },
-            },
-            {
-              model: chat,
-              as: "senderMessage",
-              attributes: {
-                exclude: ["createdAt", "updatedAt"],
-              },
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt"],
-          },
-        });
-
-        customerContacts = JSON.parse(JSON.stringify(customerContact));
-
-        customerContacts = customerContacts.map((item) => {
-          return {
-            ...item,
-            profile: {
-              ...item,
-              // image: item.profile?.image ? process.env.FILE_PATH + item.profile?.image : null,
-            },
-          };
-        });
-
-        // emit event to send admin data on event “admin contact”
-        socket.emit("customer contacts", customerContacts);
-      } catch (err) {
-        console.log(err);
-      }
-    });
-
     socket.on("disconnect", () => {
-      console.log("client disconnected", socket.id);
+      console.log("client disconnect", socket.id);
       delete connectedUser[userId];
     });
   });

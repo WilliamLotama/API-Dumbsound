@@ -196,16 +196,34 @@ exports.notification = async (req, res) => {
         // TODO set transaction status on your database to 'success'
         // and response with 200 OK
         // sendEmail("success", orderId);
-        updateTransaction("success", orderId, true, statusResponse?.payment_type, statusResponse?.transaction_time, statusResponse?.gross_amount);
+        updateTransaction(
+          "success",
+          orderId,
+          true,
+          statusResponse?.payment_type,
+          statusResponse?.transaction_time,
+          statusResponse?.gross_amount
+        );
         res.status(200);
       }
     } else if (transactionStatus == "settlement") {
       // TODO set transaction status on your database to 'success'
       // and response with 200 OK
       // sendEmail("success", orderId);
-      updateTransaction("success", orderId, true, statusResponse?.payment_type, statusResponse?.transaction_time, statusResponse?.gross_amount);
+      updateTransaction(
+        "success",
+        orderId,
+        true,
+        statusResponse?.payment_type,
+        statusResponse?.transaction_time,
+        statusResponse?.gross_amount
+      );
       res.status(200);
-    } else if (transactionStatus == "cancel" || transactionStatus == "deny" || transactionStatus == "expire") {
+    } else if (
+      transactionStatus == "cancel" ||
+      transactionStatus == "deny" ||
+      transactionStatus == "expire"
+    ) {
       // TODO set transaction status on your database to 'failure'
       // and response with 200 OK
       // sendEmail("failed", orderId);
@@ -225,7 +243,14 @@ exports.notification = async (req, res) => {
 };
 
 // Create function for handle transaction update status
-const updateTransaction = async (status, transactionId, subscribe, paymentMethod, startDate, grossAmount) => {
+const updateTransaction = async (
+  status,
+  transactionId,
+  subscribe,
+  paymentMethod,
+  startDate,
+  grossAmount
+) => {
   try {
     await transaction.update(
       {
@@ -321,9 +346,9 @@ const updateTransaction = async (status, transactionId, subscribe, paymentMethod
             },
           }
         );
-      } else if (grossAmount === "40000.00") {
+      } else if (grossAmount === "200000.00") {
         dueDate = new Date(startDate);
-        dueDate.setDate(dueDate.getDate() + 90);
+        dueDate.setDate(dueDate.getDate() + 365);
 
         await transaction.update(
           {

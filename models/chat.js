@@ -1,5 +1,7 @@
-"use strict";
-const { Model } = require("sequelize");
+'use strict';
+const {
+  Model
+} = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class chat extends Model {
     /**
@@ -15,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
           name: "idSender",
         },
       });
-
+      
       chat.belongsTo(models.user, {
         as: "recipient",
         foreignKey: {
@@ -23,17 +25,14 @@ module.exports = (sequelize, DataTypes) => {
         },
       });
     }
-  }
-  chat.init(
-    {
-      message: DataTypes.TEXT,
-      idSender: DataTypes.INTEGER,
-      idRecipient: DataTypes.INTEGER,
-    },
-    {
-      sequelize,
-      modelName: "chat",
-    }
-  );
+  };
+  chat.init({
+    message: DataTypes.TEXT,
+    idSender: DataTypes.INTEGER,
+    idRecipient: DataTypes.INTEGER
+  }, {
+    sequelize,
+    modelName: 'chat',
+  });
   return chat;
 };
